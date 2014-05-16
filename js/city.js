@@ -30,6 +30,7 @@ app.city = {
 		NUM_GOOD_FISH : 0,
 		NUM_BAD_FISH : 0,
 		FISH_SPEED : 1,
+		score: 5,
 		
 		zombieArray : undefined,
 		
@@ -104,11 +105,12 @@ app.city = {
 		this.drawHUD();
 	},
 	
-	drawHUD()
+	drawHUD : function()
 	{
+		document.querySelector('#score').innerHTML = "Score: " + this.score;
 	},
 	
-	updateFish()
+	updateFish : function()
 	{
 		// if all the zombies are dead, then time to reset the level
 		if(this.zombieArray.length == 0){ resetLevel(); }
@@ -118,9 +120,9 @@ app.city = {
 			var closestZombieLength;
 			var closestZombieIndex;
 			// Good fish: flee nearest zombiefish (within params)
-			for(int j = 0; j < this.zombieArray.length; j++)
+			for(var j = 0; j < this.zombieArray.length; j++)
 			{
-				if(distToPoint(
+				if(this.distToPoint(
 				this.fishArray[i].mesh.position.x,
 				this.fishArray[i].mesh.position.y,
 				this.fishArray[i].mesh.position.z, 
@@ -130,7 +132,7 @@ app.city = {
 				{
 					// new closest zombie
 					closestZombieIndex = j;
-					closestZombieLength = distToPoint(
+					closestZombieLength = this.distToPoint(
 						this.fishArray[i].mesh.position.x,
 						this.fishArray[i].mesh.position.y,
 						this.fishArray[i].mesh.position.z, 
@@ -142,17 +144,45 @@ app.city = {
 			}
 			// we know which zombie this fish will try to avoid 
 			// so get the vector 
+			// TODO
 		}
 		
 		for(var i =0; i< this.zombieArray.length; i++)
 		{
+		var closestFishLength;
+			var closestFishIndex;
+			// Good fish: chase nearest fish (within params)
+			for(var j = 0; j < this.fishArray.length; j++)
+			{
+				if(this.distToPoint(
+				this.zombieArray[i].mesh.position.x,
+				this.zombieArray[i].mesh.position.y,
+				this.zombieArray[i].mesh.position.z, 
+				this.fishArray[j].mesh.position.x,
+				this.fishArray[j].mesh.position.y ,
+				this.fishArray[j].mesh.position.y) < closestFishLength)
+				{
+					// new closest zombie
+					closestFishIndex = j;
+					closestFishLength = this.distToPoint(
+					this.zombieArray[i].mesh.position.x,
+					this.zombieArray[i].mesh.position.y,
+					this.zombieArray[i].mesh.position.z, 
+					this.fishArray[j].mesh.position.x,
+					this.fishArray[j].mesh.position.y ,
+					this.fishArray[j].mesh.position.y);
+				}
+				
+			}
+			
+			// TODO: do something with our newfound knowledge of the closest fish
 		
 		}
 	},
 	
 	distToPoint : function(object1X,object1Y,object1Z, object2X,object2Y,object2Z)
 	{
-		objectDistance = Math.sqrt((object2X-object1X)*(object2X-object1X) + 
+		var objectDistance = Math.sqrt((object2X-object1X)*(object2X-object1X) + 
                       (object2Y-object1Y)*(object2Y-object1Y) + 
                       (object2Z-object1Z)*(object2Z-object1Z));
 					  

@@ -29,8 +29,13 @@ app.city = {
 		MAX_BAD_FISH : 0, 
 		NUM_GOOD_FISH : 0,
 		NUM_BAD_FISH : 0,
-		FISH_SPEED : 1,
+		FISH_SPEED : .001,
 		score: 5,
+		
+		//***lazers***
+		lazerArray: [],
+		spaceDown: false,
+		//***lazers***
 		
 		zombieArray : undefined,
 		
@@ -66,8 +71,6 @@ app.city = {
 			this.drawPauseScreen();
 			return;
 		 }
-	
-	
 		// UPDATE
 		this.controls.update(this.dt);
 		// **update playerBB
@@ -85,17 +88,42 @@ app.city = {
 			this.scene.remove(this.collisionBoxTest);
 			this.scene.remove(this.fishBB);
 		}
-		
-		// ********shoot code********
-		if(app.keydown[app.KEYBOARD.KEY_SPACE]){
-			console.log("shoot");
-		}
-	
+		s
 	
 		this.skyMesh.position = (this.camera.position);
 		
-		// update fishies
-		this.updateFish();
+		// ********shoot code********
+		if(!app.keydown[app.KEYBOARD.KEY_SPACE] && this.spaceDown)
+			this.spaceDown = false;
+		if(app.keydown[app.KEYBOARD.KEY_SPACE] && !this.spaceDown){
+			console.log("shoot");
+			this.shoot();
+			this.spaceDown = true;
+		}
+		
+		// lazers!
+		this.lazerArray = this.lazerArray.filter(function(lazer){
+			return lazer.active;
+		});
+		
+		for(var i = 0; i < this.lazerArray.length; i++){
+			// move everything first
+			this.lazerArray[i].mesh.position.x += this.lazerArray[i].velocity.x;
+			this.lazerArray[i].mesh.position.y += this.lazerArray[i].velocity.y;
+			this.lazerArray[i].mesh.position.z += this.lazerArray[i].velocity.z;
+			this.lazerArray[i].BB.translate(this.lazerArray[i].velocity);
+			
+			// check BB to BB
+			if(this.lazerArray[i].BB.isIntersectionBox(this.fishBB)){
+				this.scene.remove(this.fishBB);
+				this.scene.remove(this.collisionBoxTest);
+				this.scene.remove(this.lazerArray[i].mesh);
+				this.scene.remove(this.lazerArray[i].BB);
+				this.lazerArray[i].active = false;
+			}
+		}
+		//***lazers***
+	
 		
 		
 		// DRAW	
@@ -113,70 +141,98 @@ app.city = {
 	updateFish : function()
 	{
 		// if all the zombies are dead, then time to reset the level
-		if(this.zombieArray.length == 0){ resetLevel(); }
+		if(this.zombieArray.length == 0){ console.log("Resetting level"); resetLevel();		}
 	
+		// Every fish flees the closest ZombieFish
 		for(var  i = 0; i < this.fishArray.length; i++)
 		{
 			var closestZombieLength;
 			var closestZombieIndex;
+			var cx, cy, cz = 0;
 			// Good fish: flee nearest zombiefish (within params)
 			for(var j = 0; j < this.zombieArray.length; j++)
 			{
 				if(this.distToPoint(
-				this.fishArray[i].mesh.position.x,
-				this.fishArray[i].mesh.position.y,
-				this.fishArray[i].mesh.position.z, 
-				this.zombieArray[j].mesh.position.x,
-				this.zombieArray[j].mesh.position.y ,
-				this.zombieArray[j].mesh.position.y) < closestZombieLength)
+				this.fishArray[i].position.x,
+				this.fishArray[i].position.y,
+				this.fishArray[i].position.z, 
+				this.zombieArray[j].position.x,
+				this.zombieArray[j].position.y ,
+				this.zombieArray[j].position.y) < closestZombieLength)
 				{
 					// new closest zombie
 					closestZombieIndex = j;
+					cz = this.zombieArray[j].position.z;
+					cy = this.zombieArray[j].position.y;
+					cz = this.zombieArray[j].position.z; 
+					
 					closestZombieLength = this.distToPoint(
-						this.fishArray[i].mesh.position.x,
-						this.fishArray[i].mesh.position.y,
-						this.fishArray[i].mesh.position.z, 
-						this.zombieArray[j].mesh.position.x,
-						this.zombieArray[j].mesh.position.y ,
-						this.zombieArray[j].mesh.position.y);
+						this.fishArray[i].position.x,
+						this.fishArray[i].position.y,
+						this.fishArray[i].position.z, 
+						this.zombieArray[j].position.x,
+						this.zombieArray[j].position.y ,
+						this.zombieArray[j].position.y);
 				}
-				
+				else{}
 			}
-			// we know which zombie this fish will try to avoid 
-			// so get the vector 
-			// TODO
+			
+			this.FISH_SPEED = 3;
+			console.log("At : " + this.fishArray[i].position.x + ", " + this.fishArray[i].position.y);
+			var x = this.GetDirections(cx, this.fishArray[i].position.x) * (1 / this.FISH_SPEED);
+			var y = this.GetDirections(cy, this.fishArray[i].position.y) * (1 / this.FISH_SPEED);
+			var z = this.GetDirections(cz, this.fishArray[i].position.z) * (1 / this.FISH_SPEED);
+			this.fishArray[i].position.x = x; this.fishArray[i].position.y = y; this.fishArray[i].position.z = z;
+			/*if(this.fishArray[i].position.x > 300) this.fishArray[i].position.x -=2;
+			if(this.fishArray[i].position.x < -300) this.fishArray[i].position.x +=2;
+			
+			if(this.fishArray[i].position.y > 300) this.fishArray[i].position.y -=2;
+			if(this.fishArray[i].position.y < -300) this.fishArray[i].position.y +=2;
+			
+			if(this.fishArray[i].position.z > 300) this.fishArray[i].position.z -=2;
+			if(this.fishArray[i].position.z < -300) this.fishArray[i].position.z +=2;*/
+			console.log(this.fishArray[i]);
+			
 		}
 		
+		// Every zombiefish chases the closest Fish
 		for(var i =0; i< this.zombieArray.length; i++)
 		{
-		var closestFishLength;
+			var closestFishLength;
 			var closestFishIndex;
 			// Good fish: chase nearest fish (within params)
 			for(var j = 0; j < this.fishArray.length; j++)
 			{
 				if(this.distToPoint(
-				this.zombieArray[i].mesh.position.x,
-				this.zombieArray[i].mesh.position.y,
-				this.zombieArray[i].mesh.position.z, 
-				this.fishArray[j].mesh.position.x,
-				this.fishArray[j].mesh.position.y ,
-				this.fishArray[j].mesh.position.y) < closestFishLength)
+				this.zombieArray[i].position.x,
+				this.zombieArray[i].position.y,
+				this.zombieArray[i].position.z, 
+				this.fishArray[j].position.x,
+				this.fishArray[j].position.y ,
+				this.fishArray[j].position.y) < closestFishLength)
 				{
 					// new closest zombie
 					closestFishIndex = j;
+					cz = this.fishArray[j].position.z;
+					cy = this.fishArray[j].position.y;
+					cz = this.fishArray[j].position.z; 
+					
 					closestFishLength = this.distToPoint(
-					this.zombieArray[i].mesh.position.x,
-					this.zombieArray[i].mesh.position.y,
-					this.zombieArray[i].mesh.position.z, 
-					this.fishArray[j].mesh.position.x,
-					this.fishArray[j].mesh.position.y ,
-					this.fishArray[j].mesh.position.y);
+					this.zombieArray[i].position.x,
+					this.zombieArray[i].position.y,
+					this.zombieArray[i].position.z, 
+					this.fishArray[j].position.x,
+					this.fishArray[j].position.y ,
+					this.fishArray[j].position.y);
 				}
-				
+				else{}
 			}
 			
 			// TODO: do something with our newfound knowledge of the closest fish
-		
+			var x = this.GetDirections(cx, this.zombieArray[i].position.x) * (1 / this.FISH_SPEED+1);
+			var y = this.GetDirections(cy, this.zombieArray[i].position.y) * (1 / this.FISH_SPEED+1);
+			var z = this.GetDirections(cz, this.zombieArray[i].position.z) * (1 / this.FISH_SPEED+1);
+			this.zombieArray[i].translate(x);// this.zombieArray[i].position.y = y; this.zombieArray[i].position.z = z;
 		}
 	},
 	
@@ -187,6 +243,11 @@ app.city = {
                       (object2Z-object1Z)*(object2Z-object1Z));
 					  
 		return objectDistance;
+	},
+	
+	GetDirections : function (x1, x2)
+	{
+		return (x2 - x1); // if returns negative, that means we need to go neg in this direction
 	},
 	
 	// Get the vector oppo
@@ -293,12 +354,12 @@ app.city = {
 		/*var boundingbox = new THREE.Box3();
 		boundingBox.setFromObject(fish);*/
 		
-		fish.position.x = fx; fish.position.y = fy; fish.position.z = fz;
+
+		fish.position.set(fx,fy,fz);
 		
 		this.scene.add(fish);
 		
-		var returnable = {"mesh": fish};
-		console.log("Zombie fish made: " + returnable);
+		var returnable = fish;
 		return returnable;
 		
 	},
@@ -306,19 +367,17 @@ app.city = {
 	// Takes a position and makes a fish.
 	makeFish : function(fx, fy, fz)
 	{
+		console.log("Make fish: " + fx +", " + fy + "," + fz);
 		var mat = new THREE.MeshPhongMaterial({color: 0xc4dcf5, overdraw: true});
 		var geom = new THREE.CubeGeometry(10,10,10);
 		var fish = new THREE.Mesh(geom, mat);
 		fish.castShadow = true;
-		/*var boundingbox = new THREE.Box3();
-		boundingBox.setFromObject(fish);*/
-		
-		fish.position.x = fx; fish.position.y = fy; fish.position.z = fz;
+
+		fish.position.set(fx,fy,fz);
 		
 		this.scene.add(fish);
 		
-		var returnable = {"mesh": fish};
-		console.log("Fish made: " + returnable);
+		var returnable = fish;
 		return returnable;
 		
 	},
@@ -417,8 +476,35 @@ app.city = {
 		// do something pause-like if you want
 	},
 	
-	// ********shoot code********
+	//***lazers***
 	shoot: function(){
-		
+		var geometry = new THREE.SphereGeometry(0.5, 5, 5);
+		var material = new THREE.MeshPhongMaterial({color: 0x000000});
+		var lazer = new THREE.Mesh(geometry, material);
+		lazer.position.set(this.camera.position.x, this.camera.position.y, this.camera.position.z);
+		//*** gets the vector for the direction to move in
+		//lazer.rotation.x = this.camera.position.x + 100 * Math.sin(this.controls.phi) * Math.cos(this.controls.theta);
+		//lazer.rotation.y = this.camera.position.y + 100 * Math.cos(this.controls.phi);
+		//lazer.rotation.z = this.camera.position.z + 100 * Math.sin(this.controls.phi) * Math.sin(this.controls.theta);
+		this.scene.add(lazer);
+		/*var xVelocity = 1;
+		var yVelocity = 0;
+		var zVelocity = 0;*/
+		var xVelocity =Math.sin(this.controls.phi) * Math.cos(this.controls.theta); 
+		var yVelocity =Math.cos(this.controls.phi);
+		var zVelocity =Math.sin(this.controls.phi) * Math.sin(this.controls.theta);
+		console.log("camera position(x: " + this.camera.position.x + ", " + this.camera.position.y + ", " + this.camera.position.z + ")");
+		console.log("xVelocity: " + xVelocity + " | yVelocity: " + yVelocity + " | zVelocity: " + zVelocity);
+		var lazerVelocity = new THREE.Vector3(xVelocity, yVelocity, zVelocity);
+		var boundingBox = new THREE.Box3();
+		boundingBox.setFromObject(lazer);
+		this.scene.add(boundingBox);
+		this.lazerArray.push({
+			mesh: lazer, 
+			velocity: lazerVelocity, 
+			BB: boundingBox, 
+			active: true
+		});
 	}
+	//***lazers***
 };
